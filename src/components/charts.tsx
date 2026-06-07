@@ -16,7 +16,11 @@ import {
   YAxis,
 } from "recharts";
 import { CHART_COLORS, formatWon, formatWonShort } from "@/lib/format";
-import type { MonthlyCostStack, MonthlyYearPoint } from "@/lib/analytics";
+import type {
+  MonthlyCostStack,
+  MonthlyIncomeExpense,
+  MonthlyYearPoint,
+} from "@/lib/analytics";
 
 const axisStyle = { fontSize: 12, fill: "#a3a3a3" };
 const tooltipStyle = {
@@ -87,7 +91,11 @@ export function BreakdownPie({ data }: { data: { name: string; value: number }[]
             <Cell key={d.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatWon(Number(value))} />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          formatter={(value) => formatWon(Number(value))}
+          itemStyle={{ color: "#e5e5e5" }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -110,6 +118,28 @@ export function MonthlyStackBar({ data }: { data: MonthlyCostStack[] }) {
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar dataKey="고정비" stackId="a" fill={CHART_COLORS[0]} radius={[0, 0, 0, 0]} />
         <Bar dataKey="변동비" stackId="a" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// 월별 수입/지출 비교 (그룹 바)
+export function MonthlyIncomeExpenseBar({ data }: { data: MonthlyIncomeExpense[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+        <XAxis dataKey="ym" tick={axisStyle} stroke="#404040" />
+        <YAxis tickFormatter={formatWonShort} tick={axisStyle} stroke="#404040" width={48} />
+        <Tooltip
+          contentStyle={tooltipStyle}
+          formatter={(value) => formatWon(Number(value))}
+          labelStyle={{ color: "#e5e5e5" }}
+          cursor={{ fill: "#ffffff10" }}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar dataKey="수입" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="지출" fill={CHART_COLORS[3]} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -144,6 +174,7 @@ export function TopMerchantsBar({
             return [`${formatWon(Number(value))} (${count}건)`, "지출"];
           }}
           labelStyle={{ color: "#e5e5e5" }}
+          itemStyle={{ color: "#e5e5e5" }}
           cursor={{ fill: "#ffffff10" }}
         />
         <Bar dataKey="value" radius={[0, 4, 4, 0]}>

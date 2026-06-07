@@ -3,6 +3,8 @@ import {
   BIG_CATEGORIES,
   type BigCategory,
   classifyCostType,
+  incomeAmount,
+  isIncome,
   isSpending,
   spendAmount,
   toBigCategory,
@@ -14,6 +16,24 @@ export function filterByTags(txs: Transaction[], selectedTags: string[]): Transa
   if (selectedTags.length === 0) return txs;
   const set = new Set(selectedTags);
   return txs.filter((tx) => tx.tags.some((t) => set.has(t)));
+}
+
+// ── 월 필터 ────────────────────────────────────────────────────────────
+// 데이터에 존재하는 YYYY-MM 목록(최신 순).
+export function availableMonths(txs: Transaction[]): string[] {
+  const set = new Set<string>();
+  for (const tx of txs) {
+    const ym = tx.date.slice(0, 7);
+    if (ym.length === 7) set.add(ym);
+  }
+  return Array.from(set).sort((a, b) => b.localeCompare(a));
+}
+
+// 선택된 월(YYYY-MM) 목록으로 필터. 빈 배열이면 전체 반환.
+export function filterByMonths(txs: Transaction[], yms: string[]): Transaction[] {
+  if (yms.length === 0) return txs;
+  const set = new Set(yms);
+  return txs.filter((tx) => set.has(tx.date.slice(0, 7)));
 }
 
 // 전체 태그와 사용 빈도(많은 순).
@@ -143,14 +163,51 @@ export function topMerchants(
     .slice(0, n);
 }
 
-// 총 지출 / 거래 건수 요약.
-export function summary(txs: Transaction[]): { totalSpend: number; count: number } {
-  let total = 0;
+// 총 지출/수입 및 건수 요약. 순수지(net) = 수입 - 지출.
+export interface Summary {
+  totalSpend: number;
+  count: number; // 지출 건수
+  totalIncome: number;
+  incomeCount: number;
+  net: number;
+}
+
+export function summary(txs: Transaction[]): Summary {
+  let totalSpend = 0;
   let count = 0;
+  let totalIncome = 0;
+  let incomeCount = 0;
   for (const tx of txs) {
-    if (!isSpending(tx)) continue;
-    total += spendAmount(tx);
-    count += 1;
+    if (isSpending(tx)) {
+      totalSpend += spendAmount(tx);
+      count += 1;
+    } else if (isIncome(tx)) {
+      totalIncome += incomeAmount(tx);
+      incomeCount += 1;
+    }
   }
-  return { totalSpend: total, count };
+  return { totalSpend, count, totalIncome, incomeCount, net: totalIncome - totalSpend };
+}
+
+// 월별 수입/지출 비교 (데이터에 존재하는 YYYY-MM 기준, 오름차순).
+export interface MonthlyIncomeExpense {
+  ym: string;
+  수입: number;
+  지출: number;
+}
+
+export function monthlyIncomeExpense(txs: Transaction[]): MonthlyIncomeExpense[] {
+  const map = new Map<string, MonthlyIncomeExpense>();
+  for (const tx of txs) {
+    const ym = tx.date.slice(0, 7);
+    if (ym.length !== 7) continue;
+    const spend = spendAmount(tx);
+    const income = incomeAmount(tx);
+    if (spend === 0 && income === 0) continue;
+    if (!map.has(ym)) map.set(ym, { ym, 수입: 0, 지출: 0 });
+    const bucket = map.get(ym)!;
+    bucket.수입 += income;
+    bucket.지출 += spend;
+  }
+  return Array.from(map.values()).sort((a, b) => a.ym.localeCompare(b.ym));
 }

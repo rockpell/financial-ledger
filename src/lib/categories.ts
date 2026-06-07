@@ -34,9 +34,19 @@ export function spendAmount(tx: Transaction): number {
   return Math.abs(tx.amount);
 }
 
+// 수입 판정: 타입이 '수입'인 거래(자금이동/이체 제외).
+export function isIncome(tx: Transaction): boolean {
+  return tx.type === "수입";
+}
+
+// 수입 금액(양수)으로 정규화.
+export function incomeAmount(tx: Transaction): number {
+  return isIncome(tx) ? Math.abs(tx.amount) : 0;
+}
+
 // ── 고정비 / 변동비 재분류 ─────────────────────────────────────────────
 // 고정비로 간주할 대분류.
-const FIXED_MAJOR = new Set<string>(["주거/통신", "보험", "교육/학습"]);
+const FIXED_MAJOR = new Set<string>(["주거/통신", "보험"]);
 // 고정비 성격의 소분류(대분류가 달라도 고정비로 끌어올림).
 const FIXED_MINOR = new Set<string>([
   "월세",
@@ -84,13 +94,13 @@ const BIG_CATEGORY_MAP: Record<string, BigCategory> = {
   // 필수 고정비
   "주거/통신": "필수 고정비",
   보험: "필수 고정비",
-  "교육/학습": "필수 고정비",
   "자녀/육아": "필수 고정비",
   // 문화/여가
   "문화/여가": "문화/여가",
   "여행/숙박": "문화/여가",
   "의료/건강": "문화/여가",
   "경조/선물": "문화/여가",
+  "교육/학습": "문화/여가",
   // 교통/이동
   교통: "교통/이동",
   자동차: "교통/이동",
