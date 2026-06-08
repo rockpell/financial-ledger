@@ -148,8 +148,12 @@ export function MonthlyIncomeExpenseBar({ data }: { data: MonthlyIncomeExpense[]
 // 소비처 Top N 가로 바
 export function TopMerchantsBar({
   data,
+  onClick,
+  selectedKeys,
 }: {
   data: { name: string; value: number; count: number }[];
+  onClick?: (name: string) => void;
+  selectedKeys?: string[];
 }) {
   return (
     <ResponsiveContainer width="100%" height={Math.max(220, data.length * 48)}>
@@ -177,10 +181,23 @@ export function TopMerchantsBar({
           itemStyle={{ color: "#e5e5e5" }}
           cursor={{ fill: "#ffffff10" }}
         />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-          {data.map((d, i) => (
-            <Cell key={d.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-          ))}
+        <Bar 
+          dataKey="value" 
+          radius={[0, 4, 4, 0]}
+          onClick={onClick ? (data: any) => { if (data?.name) onClick(data.name); } : undefined}
+          style={{ cursor: onClick ? "pointer" : "default" }}
+        >
+          {data.map((d, i) => {
+            const isSelected = selectedKeys ? selectedKeys.includes(d.name) : true;
+            const isDimmed = selectedKeys && selectedKeys.length > 0 && !isSelected;
+            return (
+              <Cell 
+                key={d.name} 
+                fill={CHART_COLORS[i % CHART_COLORS.length]} 
+                fillOpacity={isDimmed ? 0.3 : 1}
+              />
+            );
+          })}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

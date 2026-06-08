@@ -18,6 +18,14 @@ export function filterByTags(txs: Transaction[], selectedTags: string[]): Transa
   return txs.filter((tx) => tx.tags.some((t) => set.has(t)));
 }
 
+// ── 카테고리 필터 ────────────────────────────────────────────────────────
+// 선택된 세부 카테고리가 있으면 해당 카테고리의 거래만 남긴다.
+export function filterByCategories(txs: Transaction[], selectedCategories: string[]): Transaction[] {
+  if (selectedCategories.length === 0) return txs;
+  const set = new Set(selectedCategories);
+  return txs.filter((tx) => set.has(tx.majorCategory || "(미상)"));
+}
+
 // ── 월 필터 ────────────────────────────────────────────────────────────
 // 데이터에 존재하는 YYYY-MM 목록(최신 순).
 export function availableMonths(txs: Transaction[]): string[] {

@@ -8,6 +8,7 @@ import {
   bigCategoryBreakdown,
   categoryBreakdown,
   costTypeBreakdown,
+  filterByCategories,
   filterByMonths,
   filterByTags,
   monthlyCostStack,
@@ -36,14 +37,14 @@ function Card({
   children,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-neutral-200">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-neutral-500">{subtitle}</p>}
+        {subtitle && <div className="mt-1.5 text-xs text-neutral-500">{subtitle}</div>}
       </div>
       {children}
     </section>
@@ -57,6 +58,7 @@ export function Dashboard() {
   const [error, setError] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,13 +86,24 @@ export function Dashboard() {
     load();
   }, [load]);
 
-  // 태그 필터를 적용한 거래 집합 (선택 없으면 전체). 추세 차트(라인/월별 스택)는 이 전체 범위를 사용.
-  const filtered = useMemo(() => filterByTags(all, selectedTags), [all, selectedTags]);
+  // 태그 및 카테고리 필터를 적용한 거래 집합. 추세 차트(라인/월별 스택)는 이 전체 범위를 사용.
+  const filtered = useMemo(() => {
+    let res = filterByTags(all, selectedTags);
+    res = filterByCategories(res, selectedCategories);
+    return res;
+  }, [all, selectedTags, selectedCategories]);
+  
   // 월 필터까지 적용한 집합. 요약/파이/Top5/세부리스트는 선택 월에 반응.
   const scoped = useMemo(
     () => filterByMonths(filtered, selectedMonths),
     [filtered, selectedMonths],
   );
+
+  // 카테고리 필터가 적용되기 전의 데이터. 카테고리 차트는 항상 전체 옵션을 보여주기 위함.
+  const scopedBeforeCats = useMemo(() => {
+    const res = filterByTags(all, selectedTags);
+    return filterByMonths(res, selectedMonths);
+  }, [all, selectedTags, selectedMonths]);
 
   const tags = useMemo(() => tagCloud(all), [all]);
   const months = useMemo(() => availableMonths(all), [all]);
@@ -100,7 +113,7 @@ export function Dashboard() {
   const costPie = useMemo(() => costTypeBreakdown(scoped), [scoped]);
   const costStack = useMemo(() => monthlyCostStack(filtered), [filtered]);
   const bigCat = useMemo(() => bigCategoryBreakdown(scoped), [scoped]);
-  const categoryData = useMemo(() => categoryBreakdown(scoped), [scoped]);
+  const categoryData = useMemo(() => categoryBreakdown(scopedBeforeCats), [scopedBeforeCats]);
   const top5 = useMemo(() => topMerchants(scoped, 5), [scoped]);
 
   const scopeLabel =
@@ -118,6 +131,11 @@ export function Dashboard() {
   const toggleTag = (tag: string) =>
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+
+  const toggleCategory = (cat: string) =>
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
     );
 
   async function logout() {
@@ -230,15 +248,44 @@ export function Dashboard() {
             <MonthlyStackBar data={costStack} />
           </Card>
 
-          <Card title="카테고리별 지출" subtitle={`세부 카테고리별 지출 현황 · ${scopeLabel}`}>
-            <TopMerchantsBar data={categoryData} />
+          <Card 
+            title="카테고리별 지출" 
+            subtitle={selectedCategories.length > 0 
+              ? `선택됨: ${selectedCategories.join(", ")} (다시 클릭하여 해제)` 
+              : `세부 카테고리별 지출 현황 · ${scopeLabel} (클릭하여 필터)`}
+          >
+            <TopMerchantsBar 
+              data={categoryData} 
+              onClick={toggleCategory} 
+              selectedKeys={selectedCategories} 
+            />
           </Card>
 
           <Card title="소비 Top 5" subtitle={`결제처 그룹화 기준 지출 상위 · ${scopeLabel}`}>
             <TopMerchantsBar data={top5} />
           </Card>
 
-          <Card title="세부 거래 내역" subtitle={`${scopeLabel} · 검색 및 페이지 탐색 가능`}>
+          <Card 
+            title="세부 거래 내역" 
+            subtitle={
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="rounded-md bg-neutral-800 px-2 py-1 font-medium text-neutral-300">
+                  🗓️ {scopeLabel}
+                </span>
+                {selectedTags.length > 0 && (
+                  <span className="rounded-md border border-emerald-900/50 bg-emerald-950/50 px-2 py-1 font-medium text-emerald-400">
+                    🏷️ {selectedTags.join(", ")}
+                  </span>
+                )}
+                {selectedCategories.length > 0 && (
+                  <span className="rounded-md border border-blue-900/50 bg-blue-950/50 px-2 py-1 font-medium text-blue-400">
+                    📂 {selectedCategories.join(", ")}
+                  </span>
+                )}
+                <span className="ml-1 text-neutral-500">· 검색 및 페이지 탐색 가능</span>
+              </div>
+            }
+          >
             <TransactionList transactions={scoped} />
           </Card>
         </>
