@@ -12,9 +12,9 @@ export function extractTags(memo: string): string[] {
   return Array.from(new Set(matches.map((t) => t.slice(1))));
 }
 
-// 중복 판별용 고유 키: 날짜 + 내용 + 금액 + 결제수단.
-export function uniqueKey(tx: Pick<Transaction, "date" | "content" | "amount" | "payment">): string {
-  return `${tx.date}|${tx.content}|${tx.amount}|${tx.payment}`;
+// 중복 판별용 고유 키: 날짜 + 시간 + 내용 + 금액. (결제수단, 카테고리 등은 수정될 수 있으므로 제외)
+export function uniqueKey(tx: Pick<Transaction, "date" | "time" | "content" | "amount">): string {
+  return `${tx.date}|${tx.time}|${tx.content}|${tx.amount}`;
 }
 
 // 노이즈 필터: 대분류가 '미분류'이면서 금액 절댓값이 100원 이하인 소액 내역.
