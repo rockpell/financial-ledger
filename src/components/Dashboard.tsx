@@ -6,6 +6,7 @@ import type { Transaction } from "@/lib/types";
 import {
   availableMonths,
   bigCategoryBreakdown,
+  categoryBreakdown,
   costTypeBreakdown,
   filterByMonths,
   filterByTags,
@@ -99,6 +100,7 @@ export function Dashboard() {
   const costPie = useMemo(() => costTypeBreakdown(scoped), [scoped]);
   const costStack = useMemo(() => monthlyCostStack(filtered), [filtered]);
   const bigCat = useMemo(() => bigCategoryBreakdown(scoped), [scoped]);
+  const categoryData = useMemo(() => categoryBreakdown(scoped), [scoped]);
   const top5 = useMemo(() => topMerchants(scoped, 5), [scoped]);
 
   const scopeLabel =
@@ -226,6 +228,10 @@ export function Dashboard() {
 
           <Card title="월별 고정비/변동비" subtitle="월별 스택 바 차트 (전체 기간)">
             <MonthlyStackBar data={costStack} />
+          </Card>
+
+          <Card title="카테고리별 지출" subtitle={`세부 카테고리별 지출 현황 · ${scopeLabel}`}>
+            <TopMerchantsBar data={categoryData} />
           </Card>
 
           <Card title="소비 Top 5" subtitle={`결제처 그룹화 기준 지출 상위 · ${scopeLabel}`}>

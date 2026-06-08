@@ -136,6 +136,25 @@ export function bigCategoryBreakdown(txs: Transaction[]): { name: BigCategory; v
   );
 }
 
+// ── 원본 대분류 기준 카테고리 소비 ─────────────────────────────────────
+export function categoryBreakdown(
+  txs: Transaction[],
+): { name: string; value: number; count: number }[] {
+  const map = new Map<string, { value: number; count: number }>();
+  for (const tx of txs) {
+    const amt = spendAmount(tx);
+    if (amt === 0) continue;
+    const name = tx.majorCategory || "(미상)";
+    const cur = map.get(name) ?? { value: 0, count: 0 };
+    cur.value += amt;
+    cur.count += 1;
+    map.set(name, cur);
+  }
+  return Array.from(map.entries())
+    .map(([name, v]) => ({ name, value: v.value, count: v.count }))
+    .sort((a, b) => b.value - a.value);
+}
+
 // ── 소비처 Top N ───────────────────────────────────────────────────────
 // 프랜차이즈 지점명("...판교테크노밸리점")을 제거해 결제처를 그룹화.
 function normalizeMerchant(content: string): string {
