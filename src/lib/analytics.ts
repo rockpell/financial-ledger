@@ -18,6 +18,16 @@ export function filterByTags(txs: Transaction[], selectedTags: string[]): Transa
   return txs.filter((tx) => tx.tags.some((t) => set.has(t)));
 }
 
+// ── 검색어 필터 ──────────────────────────────────────────────────────────
+export function filterBySearchQuery(txs: Transaction[], query: string): Transaction[] {
+  if (!query.trim()) return txs;
+  const q = query.trim().toLowerCase();
+  return txs.filter(
+    (tx) =>
+      tx.memo.toLowerCase().includes(q) || tx.content.toLowerCase().includes(q)
+  );
+}
+
 // ── 카테고리 필터 ────────────────────────────────────────────────────────
 // 선택된 세부 카테고리가 있으면 해당 카테고리의 거래만 남긴다.
 export function filterByCategories(txs: Transaction[], selectedCategories: string[]): Transaction[] {

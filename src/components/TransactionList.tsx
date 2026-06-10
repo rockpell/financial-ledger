@@ -6,15 +6,7 @@ import { formatWon } from "@/lib/format";
 
 const PAGE_SIZE = 50;
 
-// 값이 일정 시간(delay) 동안 멈춘 뒤에만 갱신되는 디바운스 훅.
-function useDebouncedValue<T>(value: T, delay = 200): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
+import { useDebouncedValue } from "@/lib/hooks";
 
 function amountClass(tx: Transaction): string {
   if (tx.type === "수입") return "text-emerald-400";
@@ -43,6 +35,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
             t.majorCategory.toLowerCase().includes(q) ||
             t.minorCategory.toLowerCase().includes(q) ||
             t.payment.toLowerCase().includes(q) ||
+            t.memo.toLowerCase().includes(q) ||
             t.tags.some((tag) => tag.toLowerCase().includes(q)),
         )
       : transactions;
@@ -62,7 +55,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="내용·카테고리·결제수단·태그 검색"
+          placeholder="내용·카테고리·결제수단·메모·태그 검색"
           className="w-full max-w-xs rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
         />
         <span className="text-xs text-neutral-500">{filtered.length.toLocaleString()}건</span>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDebouncedValue } from "@/lib/hooks";
 import type { Transaction } from "@/lib/types";
 import {
   availableMonths,
@@ -11,6 +12,7 @@ import {
   filterByCategories,
   filterByMonths,
   filterByTags,
+  filterBySearchQuery,
   monthlyCostStack,
   monthlyIncomeExpense,
   monthlySpendByYear,
@@ -59,6 +61,8 @@ export function Dashboard() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,8 +94,9 @@ export function Dashboard() {
   const filtered = useMemo(() => {
     let res = filterByTags(all, selectedTags);
     res = filterByCategories(res, selectedCategories);
+    res = filterBySearchQuery(res, debouncedSearchQuery);
     return res;
-  }, [all, selectedTags, selectedCategories]);
+  }, [all, selectedTags, selectedCategories, debouncedSearchQuery]);
   
   // 월 필터까지 적용한 집합. 요약/파이/Top5/세부리스트는 선택 월에 반응.
   const scoped = useMemo(
@@ -101,9 +106,10 @@ export function Dashboard() {
 
   // 카테고리 필터가 적용되기 전의 데이터. 카테고리 차트는 항상 전체 옵션을 보여주기 위함.
   const scopedBeforeCats = useMemo(() => {
-    const res = filterByTags(all, selectedTags);
+    let res = filterByTags(all, selectedTags);
+    res = filterBySearchQuery(res, debouncedSearchQuery);
     return filterByMonths(res, selectedMonths);
-  }, [all, selectedTags, selectedMonths]);
+  }, [all, selectedTags, selectedMonths, debouncedSearchQuery]);
 
   const tags = useMemo(() => tagCloud(all), [all]);
   const months = useMemo(() => availableMonths(all), [all]);
@@ -219,6 +225,26 @@ export function Dashboard() {
         />
       </Card>
 
+      <Card title="내용 / 메모 검색" subtitle="거래 내용이나 메모에 포함된 단어로 검색합니다.">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="검색어를 입력하세요..."
+            className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </Card>
+
       {loading ? (
         <div className="py-20 text-center text-sm text-neutral-500">불러오는 중…</div>
       ) : all.length === 0 ? (
@@ -275,6 +301,11 @@ export function Dashboard() {
                 {selectedTags.length > 0 && (
                   <span className="rounded-md border border-emerald-900/50 bg-emerald-950/50 px-2 py-1 font-medium text-emerald-400">
                     🏷️ {selectedTags.join(", ")}
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="rounded-md border border-purple-900/50 bg-purple-950/50 px-2 py-1 font-medium text-purple-400">
+                    🔍 {searchQuery}
                   </span>
                 )}
                 {selectedCategories.length > 0 && (
