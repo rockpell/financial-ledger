@@ -173,86 +173,88 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* 요약 */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-xs text-neutral-500">
-            총 수입 · {scopeLabel}
-            {selectedTags.length > 0 && " (태그)"}
-          </p>
-          <p className="mt-1 text-2xl font-bold text-emerald-400">{formatWon(sum.totalIncome)}</p>
-          <p className="mt-0.5 text-xs text-neutral-600">{sum.incomeCount.toLocaleString()}건</p>
+      {loading && all.length === 0 ? (
+        <div className="flex flex-col items-center justify-center space-y-4 py-32">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-800 border-t-neutral-400"></div>
+          <div className="text-sm font-medium text-neutral-500">데이터를 불러오는 중입니다...</div>
         </div>
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-xs text-neutral-500">
-            총 지출 · {scopeLabel}
-            {selectedTags.length > 0 && " (태그)"}
-          </p>
-          <p className="mt-1 text-2xl font-bold text-rose-400">{formatWon(sum.totalSpend)}</p>
-          <p className="mt-0.5 text-xs text-neutral-600">{sum.count.toLocaleString()}건</p>
-        </div>
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-xs text-neutral-500">순수지 (수입−지출) · {scopeLabel}</p>
-          <p
-            className={`mt-1 text-2xl font-bold ${
-              sum.net >= 0 ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {formatWon(sum.net)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-xs text-neutral-500">전체 거래(시트)</p>
-          <p className="mt-1 text-2xl font-bold text-neutral-100">{all.length.toLocaleString()}건</p>
-        </div>
-      </div>
-
-      <Card title="기간 선택" subtitle="여러 달을 동시에 선택할 수 있습니다. 요약·비중·Top5·세부 리스트가 선택한 월 기준으로 갱신됩니다.">
-        <MonthSelector
-          months={months}
-          selected={selectedMonths}
-          onToggle={toggleMonth}
-          onClear={() => setSelectedMonths([])}
-        />
-      </Card>
-
-      <Card title="태그 필터" subtitle="선택 시 해당 #태그가 포함된 거래만으로 갱신됩니다.">
-        <TagFilter
-          tags={tags}
-          selected={selectedTags}
-          onToggle={toggleTag}
-          onClear={() => setSelectedTags([])}
-        />
-      </Card>
-
-      <Card title="내용 / 메모 검색" subtitle="거래 내용이나 메모에 포함된 단어로 검색합니다.">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="검색어를 입력하세요..."
-            className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </Card>
-
-      {loading ? (
-        <div className="py-20 text-center text-sm text-neutral-500">불러오는 중…</div>
       ) : all.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-10 text-center text-sm text-neutral-500">
+        <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-10 text-center text-sm text-neutral-500">
           아직 데이터가 없습니다. 위에서 뱅크샐러드 엑셀을 업로드해 주세요.
         </div>
       ) : (
         <>
+          {/* 요약 */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+              <p className="text-xs text-neutral-500">
+                총 수입 · {scopeLabel}
+                {selectedTags.length > 0 && " (태그)"}
+              </p>
+              <p className="mt-1 text-2xl font-bold text-emerald-400">{formatWon(sum.totalIncome)}</p>
+              <p className="mt-0.5 text-xs text-neutral-600">{sum.incomeCount.toLocaleString()}건</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+              <p className="text-xs text-neutral-500">
+                총 지출 · {scopeLabel}
+                {selectedTags.length > 0 && " (태그)"}
+              </p>
+              <p className="mt-1 text-2xl font-bold text-rose-400">{formatWon(sum.totalSpend)}</p>
+              <p className="mt-0.5 text-xs text-neutral-600">{sum.count.toLocaleString()}건</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+              <p className="text-xs text-neutral-500">순수지 (수입−지출) · {scopeLabel}</p>
+              <p
+                className={`mt-1 text-2xl font-bold ${
+                  sum.net >= 0 ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {formatWon(sum.net)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+              <p className="text-xs text-neutral-500">전체 거래(시트)</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-100">{all.length.toLocaleString()}건</p>
+            </div>
+          </div>
+
+          <Card title="기간 선택" subtitle="여러 달을 동시에 선택할 수 있습니다. 요약·비중·Top5·세부 리스트가 선택한 월 기준으로 갱신됩니다.">
+            <MonthSelector
+              months={months}
+              selected={selectedMonths}
+              onToggle={toggleMonth}
+              onClear={() => setSelectedMonths([])}
+            />
+          </Card>
+
+          <Card title="태그 필터" subtitle="선택 시 해당 #태그가 포함된 거래만으로 갱신됩니다.">
+            <TagFilter
+              tags={tags}
+              selected={selectedTags}
+              onToggle={toggleTag}
+              onClear={() => setSelectedTags([])}
+            />
+          </Card>
+
+          <Card title="내용 / 메모 검색" subtitle="거래 내용이나 메모에 포함된 단어로 검색합니다.">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="검색어를 입력하세요..."
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </Card>
           <Card title="다년도 소비 흐름" subtitle="월별 지출 총액을 연도별로 비교">
             <MultiYearLineChart data={lineData.data} years={lineData.years} />
           </Card>
