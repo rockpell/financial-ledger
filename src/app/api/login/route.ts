@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE, createToken } from "@/lib/auth";
 
-export const runtime = "edge"; // 로그인 검증도 Edge에서 처리
-
 export async function POST(req: NextRequest) {
   const secret = process.env.APP_PASSWORD;
   if (!secret) {
