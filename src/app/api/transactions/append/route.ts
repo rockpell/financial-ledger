@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const newOnes = diffNewTransactions(candidates, existingKeys);
     const appended = await appendTransactions(newOnes);
     if (appended > 0) {
-      revalidateTag("transactions");
+      revalidateTag("transactions", "default");
     }
     return NextResponse.json({
       appended,
