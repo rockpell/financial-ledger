@@ -19,16 +19,18 @@ export function MonthSelector({ months, selected, onToggle, onClear }: Props) {
   const selectedSet = new Set(selected);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        onClick={onClear}
-        className={`rounded-full px-3 py-1 text-xs transition ${
-          selected.length === 0
-            ? "bg-emerald-600 text-white"
-            : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-        }`}
-      >
-        전체
-      </button>
+      {selected.length === 0 ? (
+        <button className="rounded-full bg-emerald-600 px-3 py-1 text-xs text-white transition">
+          전체 기간
+        </button>
+      ) : (
+        <button
+          onClick={onClear}
+          className="rounded-full bg-neutral-800 px-3 py-1 text-xs text-neutral-300 transition hover:bg-neutral-700"
+        >
+          ✕ 전체 기간 (필터 해제)
+        </button>
+      )}
       {months.map((ym) => {
         const active = selectedSet.has(ym);
         return (

@@ -1,30 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useDebouncedValue } from "@/lib/hooks";
-import type { Transaction } from "@/lib/types";
 import {
-  availableMonths,
   bigCategoryBreakdown,
-  categoryBreakdown,
   costTypeBreakdown,
-  filterByCategories,
-  filterByMonths,
-  filterByTags,
-  filterBySearchQuery,
-  monthlyCostStack,
-  monthlyIncomeExpense,
-  monthlySpendByYear,
   summary,
-  tagCloud,
-  topMerchants,
+  topMerchants
 } from "@/lib/analytics";
 import { formatWon } from "@/lib/format";
-import { UploadPanel } from "./UploadPanel";
-import { TagFilter } from "./TagFilter";
+import type { Transaction } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MonthSelector } from "./MonthSelector";
+import { TagFilter } from "./TagFilter";
 import { TransactionList } from "./TransactionList";
+import { UploadPanel } from "./UploadPanel";
 import {
   BreakdownPie,
   MonthlyIncomeExpenseBar,
@@ -60,21 +49,43 @@ export function Dashboard() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [appliedTags, setAppliedTags] = useState<string[]>([]);
+
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [appliedMonths, setAppliedMonths] = useState<string[]>([]);
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [appliedCategories, setAppliedCategories] = useState<string[]>([]);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
+  
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const hasPendingChanges = 
+    JSON.stringify(selectedTags) !== JSON.stringify(appliedTags) ||
+    JSON.stringify(selectedMonths) !== JSON.stringify(appliedMonths) ||
+    JSON.stringify(selectedCategories) !== JSON.stringify(appliedCategories) ||
+    searchQuery !== appliedSearchQuery;
+
+  const applyFilters = useCallback(() => {
+    setAppliedTags(selectedTags);
+    setAppliedMonths(selectedMonths);
+    setAppliedCategories(selectedCategories);
+    setAppliedSearchQuery(searchQuery);
+  }, [selectedTags, selectedMonths, selectedCategories, searchQuery]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
-      if (selectedMonths.length) params.set("months", selectedMonths.join(","));
-      if (selectedTags.length) params.set("tags", selectedTags.join(","));
-      if (selectedCategories.length) params.set("categories", selectedCategories.join(","));
-      if (debouncedSearchQuery) params.set("q", debouncedSearchQuery);
+      if (appliedMonths.length) params.set("months", appliedMonths.join(","));
+      if (appliedTags.length) params.set("tags", appliedTags.join(","));
+      if (appliedCategories.length) params.set("categories", appliedCategories.join(","));
+      if (appliedSearchQuery) params.set("q", appliedSearchQuery);
 
       const res = await fetch(`/api/transactions?${params.toString()}`, { cache: "no-store" });
       if (res.status === 401) {
@@ -94,11 +105,21 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [router, selectedMonths, selectedTags, selectedCategories, debouncedSearchQuery]);
+  }, [router, appliedMonths, appliedTags, appliedCategories, appliedSearchQuery]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    const d = new Date();
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    setSelectedMonths([ym]);
+    setAppliedMonths([ym]);
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      load();
+    }
+  }, [load, isInitialized]);
 
   // 클라이언트 측 집계 (선택된 월/태그/카테고리로 완전히 필터링된 결과 기반)
   const sum = useMemo(() => summary(transactions), [transactions]);
@@ -115,11 +136,11 @@ export function Dashboard() {
   const categoryData = meta?.categoryData || [];
 
   const scopeLabel =
-    selectedMonths.length === 0
+    appliedMonths.length === 0
       ? "전체 기간"
-      : selectedMonths.length === 1
-        ? `${selectedMonths[0].slice(0, 4)}년 ${Number(selectedMonths[0].slice(5, 7))}월`
-        : `선택 ${selectedMonths.length}개월`;
+      : appliedMonths.length === 1
+        ? `${appliedMonths[0].slice(0, 4)}년 ${Number(appliedMonths[0].slice(5, 7))}월`
+        : `선택 ${appliedMonths.length}개월`;
 
   const toggleMonth = (ym: string) =>
     setSelectedMonths((prev) =>
@@ -157,7 +178,28 @@ export function Dashboard() {
         </button>
       </header>
 
+      {hasPendingChanges && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <button
+            onClick={applyFilters}
+            className="flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-xl hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all"
+          >
+            🚀 필터 적용하기
+          </button>
+        </div>
+      )}
+
       <UploadPanel onAppended={load} />
+
+      {/* 필터 적용 시 화면 갱신을 알리는 전체 화면 오버레이 */}
+      {loading && isInitialized && (meta || totalCount > 0) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 backdrop-blur-[2px] transition-opacity">
+          <div className="flex flex-col items-center space-y-3 rounded-2xl bg-neutral-900 p-6 shadow-2xl border border-neutral-800">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-700 border-t-blue-500"></div>
+            <div className="text-sm font-medium text-neutral-300">데이터를 갱신하고 있습니다...</div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-rose-900 bg-rose-950/40 p-4 text-sm text-rose-300">
@@ -181,7 +223,7 @@ export function Dashboard() {
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
               <p className="text-xs text-neutral-500">
                 총 수입 · {scopeLabel}
-                {selectedTags.length > 0 && " (태그)"}
+                {appliedTags.length > 0 && " (태그)"}
               </p>
               <p className="mt-1 text-2xl font-bold text-emerald-400">{formatWon(sum.totalIncome)}</p>
               <p className="mt-0.5 text-xs text-neutral-600">{sum.incomeCount.toLocaleString()}건</p>
@@ -189,7 +231,7 @@ export function Dashboard() {
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
               <p className="text-xs text-neutral-500">
                 총 지출 · {scopeLabel}
-                {selectedTags.length > 0 && " (태그)"}
+                {appliedTags.length > 0 && " (태그)"}
               </p>
               <p className="mt-1 text-2xl font-bold text-rose-400">{formatWon(sum.totalSpend)}</p>
               <p className="mt-0.5 text-xs text-neutral-600">{sum.count.toLocaleString()}건</p>
@@ -234,7 +276,10 @@ export function Dashboard() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="검색어를 입력하세요..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyFilters();
+                }}
+                placeholder="검색어를 입력하고 엔터 또는 필터 적용을 누르세요..."
                 className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
               />
               {searchQuery && (
@@ -292,30 +337,25 @@ export function Dashboard() {
                 <span className="rounded-md bg-neutral-800 px-2 py-1 font-medium text-neutral-300">
                   🗓️ {scopeLabel}
                 </span>
-                {selectedTags.length > 0 && (
+                {appliedTags.length > 0 && (
                   <span className="rounded-md border border-emerald-900/50 bg-emerald-950/50 px-2 py-1 font-medium text-emerald-400">
-                    🏷️ {selectedTags.join(", ")}
+                    🏷️ {appliedTags.join(", ")}
                   </span>
                 )}
-                {searchQuery && (
+                {appliedSearchQuery && (
                   <span className="rounded-md border border-purple-900/50 bg-purple-950/50 px-2 py-1 font-medium text-purple-400">
-                    🔍 {searchQuery}
+                    🔍 {appliedSearchQuery}
                   </span>
                 )}
-                {selectedCategories.length > 0 && (
+                {appliedCategories.length > 0 && (
                   <span className="rounded-md border border-blue-900/50 bg-blue-950/50 px-2 py-1 font-medium text-blue-400">
-                    📂 {selectedCategories.join(", ")}
+                    📂 {appliedCategories.join(", ")}
                   </span>
                 )}
                 <span className="ml-1 text-neutral-500">· 검색 및 페이지 탐색 가능</span>
               </div>
             }
           >
-            {loading && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-neutral-950/50 backdrop-blur-sm">
-                <div className="h-6 w-6 animate-spin rounded-full border-4 border-neutral-700 border-t-neutral-300"></div>
-              </div>
-            )}
             <TransactionList transactions={transactions} />
           </Card>
         </>
