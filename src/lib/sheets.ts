@@ -73,6 +73,8 @@ function transactionToRow(tx: Transaction): (string | number)[] {
   ];
 }
 
+import { cacheTag } from "next/cache";
+
 // 마스터 시트의 모든 거래를 읽어온다(헤더 행 제외).
 export async function readTransactions(): Promise<Transaction[]> {
   const sheets = getSheetsClient();
@@ -83,6 +85,12 @@ export async function readTransactions(): Promise<Transaction[]> {
   });
   const rows = (res.data.values ?? []) as string[][];
   return rows.filter((r) => r.length > 0).map(rowToTransaction);
+}
+
+export async function getCachedTransactions(): Promise<Transaction[]> {
+  "use cache";
+  cacheTag("transactions");
+  return await readTransactions();
 }
 
 // 신규 거래를 마스터 시트 최하단에 누적 append.

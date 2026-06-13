@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { appendTransactions, readTransactions } from "@/lib/sheets";
 import { diffNewTransactions, uniqueKey } from "@/lib/parse";
 import type { Transaction } from "@/lib/types";
-
-export const runtime = "nodejs";
 
 // 업로드된 파싱 결과 중 마스터에 없는 신규 거래만 시트에 누적한다.
 export async function POST(req: NextRequest) {
@@ -25,6 +24,9 @@ export async function POST(req: NextRequest) {
     const existingKeys = new Set(existing.map(uniqueKey));
     const newOnes = diffNewTransactions(candidates, existingKeys);
     const appended = await appendTransactions(newOnes);
+    if (appended > 0) {
+      revalidateTag("transactions");
+    }
     return NextResponse.json({
       appended,
       skipped: candidates.length - appended,

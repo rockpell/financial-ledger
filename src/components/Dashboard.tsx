@@ -55,7 +55,9 @@ function Card({
 
 export function Dashboard() {
   const router = useRouter();
-  const [all, setAll] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [meta, setMeta] = useState<any>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -68,7 +70,13 @@ export function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/transactions", { cache: "no-store" });
+      const params = new URLSearchParams();
+      if (selectedMonths.length) params.set("months", selectedMonths.join(","));
+      if (selectedTags.length) params.set("tags", selectedTags.join(","));
+      if (selectedCategories.length) params.set("categories", selectedCategories.join(","));
+      if (debouncedSearchQuery) params.set("q", debouncedSearchQuery);
+
+      const res = await fetch(`/api/transactions?${params.toString()}`, { cache: "no-store" });
       if (res.status === 401) {
         router.replace("/login");
         return;
@@ -77,50 +85,34 @@ export function Dashboard() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `조회 실패 (${res.status})`);
       }
-      const { transactions } = await res.json();
-      setAll(transactions);
+      const data = await res.json();
+      setTransactions(data.transactions);
+      setMeta(data.meta);
+      setTotalCount(data.totalCount);
     } catch (err) {
       setError(err instanceof Error ? err.message : "데이터를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, selectedMonths, selectedTags, selectedCategories, debouncedSearchQuery]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // 태그 및 카테고리 필터를 적용한 거래 집합. 추세 차트(라인/월별 스택)는 이 전체 범위를 사용.
-  const filtered = useMemo(() => {
-    let res = filterByTags(all, selectedTags);
-    res = filterByCategories(res, selectedCategories);
-    res = filterBySearchQuery(res, debouncedSearchQuery);
-    return res;
-  }, [all, selectedTags, selectedCategories, debouncedSearchQuery]);
-  
-  // 월 필터까지 적용한 집합. 요약/파이/Top5/세부리스트는 선택 월에 반응.
-  const scoped = useMemo(
-    () => filterByMonths(filtered, selectedMonths),
-    [filtered, selectedMonths],
-  );
+  // 클라이언트 측 집계 (선택된 월/태그/카테고리로 완전히 필터링된 결과 기반)
+  const sum = useMemo(() => summary(transactions), [transactions]);
+  const costPie = useMemo(() => costTypeBreakdown(transactions), [transactions]);
+  const bigCat = useMemo(() => bigCategoryBreakdown(transactions), [transactions]);
+  const top5 = useMemo(() => topMerchants(transactions, 5), [transactions]);
 
-  // 카테고리 필터가 적용되기 전의 데이터. 카테고리 차트는 항상 전체 옵션을 보여주기 위함.
-  const scopedBeforeCats = useMemo(() => {
-    let res = filterByTags(all, selectedTags);
-    res = filterBySearchQuery(res, debouncedSearchQuery);
-    return filterByMonths(res, selectedMonths);
-  }, [all, selectedTags, selectedMonths, debouncedSearchQuery]);
-
-  const tags = useMemo(() => tagCloud(all), [all]);
-  const months = useMemo(() => availableMonths(all), [all]);
-  const sum = useMemo(() => summary(scoped), [scoped]);
-  const lineData = useMemo(() => monthlySpendByYear(filtered), [filtered]);
-  const incomeExpense = useMemo(() => monthlyIncomeExpense(filtered), [filtered]);
-  const costPie = useMemo(() => costTypeBreakdown(scoped), [scoped]);
-  const costStack = useMemo(() => monthlyCostStack(filtered), [filtered]);
-  const bigCat = useMemo(() => bigCategoryBreakdown(scoped), [scoped]);
-  const categoryData = useMemo(() => categoryBreakdown(scopedBeforeCats), [scopedBeforeCats]);
-  const top5 = useMemo(() => topMerchants(scoped, 5), [scoped]);
+  // 서버에서 제공하는 메타 데이터 (전체 기간 및 다년도 차트용)
+  const tags = meta?.tags || [];
+  const months = meta?.months || [];
+  const lineData = meta?.lineData || { data: [], years: [] };
+  const incomeExpense = meta?.incomeExpense || [];
+  const costStack = meta?.costStack || [];
+  const categoryData = meta?.categoryData || [];
 
   const scopeLabel =
     selectedMonths.length === 0
@@ -173,12 +165,12 @@ export function Dashboard() {
         </div>
       )}
 
-      {loading && all.length === 0 ? (
+      {loading && totalCount === 0 && !meta ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-32">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-800 border-t-neutral-400"></div>
           <div className="text-sm font-medium text-neutral-500">데이터를 불러오는 중입니다...</div>
         </div>
-      ) : all.length === 0 ? (
+      ) : totalCount === 0 ? (
         <div className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-10 text-center text-sm text-neutral-500">
           아직 데이터가 없습니다. 위에서 뱅크샐러드 엑셀을 업로드해 주세요.
         </div>
@@ -214,7 +206,7 @@ export function Dashboard() {
             </div>
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
               <p className="text-xs text-neutral-500">전체 거래(시트)</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-100">{all.length.toLocaleString()}건</p>
+              <p className="mt-1 text-2xl font-bold text-neutral-100">{totalCount.toLocaleString()}건</p>
             </div>
           </div>
 
@@ -319,7 +311,12 @@ export function Dashboard() {
               </div>
             }
           >
-            <TransactionList transactions={scoped} />
+            {loading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-neutral-950/50 backdrop-blur-sm">
+                <div className="h-6 w-6 animate-spin rounded-full border-4 border-neutral-700 border-t-neutral-300"></div>
+              </div>
+            )}
+            <TransactionList transactions={transactions} />
           </Card>
         </>
       )}
