@@ -11,9 +11,11 @@ export interface Transaction {
   content: string; // 내용 (F)
   amount: number; // 금액 (G) - 지출은 음수
   currency: string; // 화폐 (H) - 보통 KRW
-  payment: string; // 결제수단 (I)
-  memo: string; // 메모 (J)
-  tags: string[]; // 파싱된 태그 (K)
+  payment: string; // 결제수단 (H)
+  memo: string; // 메모 (I)
+  tags: string[]; // 파싱된 태그 (J)
+  createdAt?: string; // 생성일시 (K)
+  updatedAt?: string; // 수정일시 (L)
 }
 
 export type TxType = "지출" | "수입" | "이체";
@@ -31,6 +33,8 @@ export const SHEET_HEADERS = [
   "결제수단",
   "메모",
   "태그",
+  "생성일시",
+  "수정일시",
 ] as const;
 
 // 고정비 / 변동비 재분류 결과.
