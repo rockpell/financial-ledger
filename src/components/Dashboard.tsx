@@ -26,18 +26,20 @@ function Card({
   title,
   subtitle,
   children,
+  bodyPaddingX = true,
 }: {
   title: string;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
+  bodyPaddingX?: boolean;
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-      <div className="mb-4">
+    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 py-5">
+      <div className="mb-4 px-5">
         <h2 className="text-sm font-semibold text-neutral-200">{title}</h2>
         {subtitle && <div className="mt-1.5 text-xs text-neutral-500">{subtitle}</div>}
       </div>
-      {children}
+      <div className={bodyPaddingX ? "px-5" : ""}>{children}</div>
     </section>
   );
 }
@@ -332,6 +334,7 @@ export function Dashboard() {
 
           <Card 
             title="세부 거래 내역" 
+            bodyPaddingX={false}
             subtitle={
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="rounded-md bg-neutral-800 px-2 py-1 font-medium text-neutral-300">

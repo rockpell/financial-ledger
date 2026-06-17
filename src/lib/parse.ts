@@ -65,6 +65,19 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function formatExcelTime(val: string): string {
+  if (!val) return "";
+  const num = Number(val);
+  // 엑셀에서 시간이 텍스트 포맷 없이 들어오면 0~1 사이의 소수로 표시됩니다 (예: 0.5 = 12:00)
+  if (!isNaN(num) && num >= 0 && num < 1 && val.includes(".")) {
+    const totalMinutes = Math.round(num * 24 * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+  return val;
+}
+
 export interface ParseResult {
   transactions: Transaction[];
   droppedNoise: number; // 노이즈 필터로 제거된 건수
@@ -115,7 +128,7 @@ export function parseWorkbook(data: ArrayBuffer): ParseResult {
     const memo = String(get("memo") ?? "").trim();
     const tx: Transaction = {
       date,
-      time: String(get("time") ?? "").trim(),
+      time: formatExcelTime(String(get("time") ?? "").trim()),
       type: normalizeType(get("type")),
       majorCategory: String(get("majorCategory") ?? "").trim(),
       minorCategory: String(get("minorCategory") ?? "").trim(),
