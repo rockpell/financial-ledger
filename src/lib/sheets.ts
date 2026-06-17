@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import type { Transaction } from "./types";
 import { SHEET_HEADERS } from "./types";
-import { extractTags } from "./parse";
+import { extractTags, formatExcelTime } from "./parse";
 
 // 구글 서비스 계정으로 시트 클라이언트 생성.
 // 키는 Vercel 환경변수에서만 읽으며 클라이언트로 전송하지 않는다.
@@ -81,7 +81,7 @@ function rowToTransaction(row: string[]): Transaction {
     : extractTags(memo);
   return {
     date: row[0] ?? "",
-    time: row[1] ?? "",
+    time: formatExcelTime(row[1] ?? ""),
     type: normalizeType(row[2] ?? ""),
     majorCategory: row[3] ?? "",
     minorCategory: row[4] ?? "",

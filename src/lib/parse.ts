@@ -12,9 +12,22 @@ export function extractTags(memo: string): string[] {
   return Array.from(new Set(matches.map((t) => t.slice(1))));
 }
 
+// 시간 형식을 통일하여 중복 방지 ("0:00", "00:00", "0", "0:00:00" -> "00:00")
+function normalizeTimeKey(time: string): string {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length >= 2) {
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+  if (time.trim() === "0") return "00:00"; 
+  return time.trim();
+}
+
 // 중복 판별용 고유 키: 날짜 + 시간 + 내용 + 금액. (결제수단, 카테고리 등은 수정될 수 있으므로 제외)
 export function uniqueKey(tx: Pick<Transaction, "date" | "time" | "content" | "amount">): string {
-  return `${tx.date}|${tx.time}|${tx.content}|${tx.amount}`;
+  return `${tx.date}|${normalizeTimeKey(tx.time)}|${tx.content}|${tx.amount}`;
 }
 
 // 노이즈 필터: 대분류가 '미분류'이면서 금액 절댓값이 100원 이하인 소액 내역.
@@ -65,12 +78,13 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatExcelTime(val: string): string {
+export function formatExcelTime(val: string): string {
   if (!val) return "";
   const num = Number(val);
-  // 엑셀에서 시간이 텍스트 포맷 없이 들어오면 0~1 사이의 소수로 표시됩니다 (예: 0.5 = 12:00)
-  if (!isNaN(num) && num >= 0 && num < 1 && val.includes(".")) {
-    const totalMinutes = Math.round(num * 24 * 60);
+  // 엑셀에서 날짜/시간 포맷이 풀리면 45464.5833 (정수=날짜, 소수=시간) 처럼 나타납니다.
+  if (!isNaN(num) && val.includes(".")) {
+    const fraction = num - Math.floor(num);
+    const totalMinutes = Math.round(fraction * 24 * 60);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
