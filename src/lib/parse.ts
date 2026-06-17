@@ -56,6 +56,8 @@ const HEADER_ALIASES: Record<keyof Transaction, string[]> = {
   payment: ["결제수단", "payment", "자산"],
   memo: ["메모", "memo", "비고"],
   tags: ["파싱된 태그", "태그", "tags"],
+  createdAt: ["생성일시", "createdAt"],
+  updatedAt: ["수정일시", "updatedAt"],
 };
 
 function buildHeaderIndex(headerRow: unknown[]): Partial<Record<keyof Transaction, number>> {
