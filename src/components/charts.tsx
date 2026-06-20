@@ -5,6 +5,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -160,7 +161,7 @@ export function TopMerchantsBar({
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 8, right: 24, bottom: 0, left: 8 }}
+        margin={{ top: 8, right: 56, bottom: 0, left: 8 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#262626" horizontal={false} />
         <XAxis type="number" tickFormatter={formatWonShort} tick={axisStyle} stroke="#404040" />
@@ -187,6 +188,13 @@ export function TopMerchantsBar({
           onClick={onClick ? (data: any) => { if (data?.name) onClick(data.name); } : undefined}
           style={{ cursor: onClick ? "pointer" : "default" }}
         >
+          <LabelList 
+            dataKey="value" 
+            position="right" 
+            formatter={(val: any) => formatWonShort(Number(val))} 
+            fill="#a3a3a3" 
+            fontSize={11} 
+          />
           {data.map((d, i) => {
             const isSelected = selectedKeys ? selectedKeys.includes(d.name) : true;
             const isDimmed = selectedKeys && selectedKeys.length > 0 && !isSelected;
